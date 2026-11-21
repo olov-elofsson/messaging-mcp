@@ -102,13 +102,20 @@ class TestReports(FakeApiTestCase):
         result = reports.reports_delivery(ACCOUNT, "EMAIL", bulk_id="b-1")
         self.assertEqual(result["messages_in_logs"], 0)
         self.assertIsNone(result["delivered_share"])
-        self.assertIn("Opens, clicks and unsubscribes", result["note"])
+        self.assertIn("reports_statistics", result["note"])
 
     def test_needs_a_reference_and_a_supported_channel(self):
         with self.assertRaisesRegex(ToolError, "campaign_reference_id or bulk_id"):
             reports.reports_delivery(ACCOUNT, "SMS")
-        with self.assertRaisesRegex(ToolError, "EMAIL and SMS"):
-            reports.reports_delivery(ACCOUNT, "RCS", bulk_id="b")
+        with self.assertRaisesRegex(ToolError, "EMAIL, SMS or RCS"):
+            reports.reports_delivery(ACCOUNT, "FAX", bulk_id="b")
+
+    def test_rcs_report_reads_the_rcs_logs(self):
+        self.routes[("GET", "/rcs/2/logs")] = {
+            "results": [log("DELIVERED"), log("ACCEPTED")]}
+        result = reports.reports_delivery(ACCOUNT, "RCS", bulk_id="b")
+        self.assertEqual(result["by_status"], {"DELIVERED": 1, "ACCEPTED": 1})
+        self.assertEqual(result["failed_by_reason"], {})
 
 
 class TestFlows(FakeApiTestCase):

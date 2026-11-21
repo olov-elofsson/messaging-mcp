@@ -1,4 +1,4 @@
-"""Looks at and stops scheduled sends."""
+"""Looks at, moves and stops scheduled sends."""
 
 from typing import Any
 
@@ -77,6 +77,74 @@ def scheduled_cancel(
         request={"bulk_id": bulk_id},
         current=current,
         summary={"bulk_id": bulk_id, "current": current, "new_status": "CANCELED"},
+        validate_only=validate_only,
+        checksum=checksum,
+        apply=apply,
+    )
+
+
+_BULK_PATHS = {"EMAIL": "/email/1/bulks", "SMS": "/sms/1/bulks"}
+
+
+@mcp.tool
+def scheduled_reschedule(
+    account: str,
+    channel: str,
+    bulk_id: str,
+    send_at: str,
+    validate_only: bool = True,
+    checksum: str | None = None,
+) -> dict[str, Any]:
+    """Moves a scheduled send to another time. Two steps: propose, confirm.
+
+    Only a send that has not gone out yet can be moved. A send in several
+    batches has several bulk IDs, and each one is moved separately.
+
+    Args:
+        account: Account alias from accounts_list.
+        channel: EMAIL or SMS.
+        bulk_id: A bulk ID returned by a send tool.
+        send_at: The new time, with time zone, e.g. 2026-12-01T09:00:00+01:00.
+        validate_only: True proposes, False moves the send.
+        checksum: Checksum from the proposal. Required when moving.
+    """
+    channel = (channel or "").strip().upper()
+    if channel not in _BULK_PATHS:
+        raise ToolError("Scheduled sends can be moved for EMAIL and SMS.")
+    new_time = sending.parse_send_at(send_at)
+    if new_time is None:
+        raise ToolError("send_at is required.")
+    status = _statuses(sending.bulk_status(account, channel, bulk_id))
+    if not any(s.get("status") in ("PENDING", "PAUSED") for s in status):
+        raise ToolError(f"Nothing to move. Current status: {status or 'unknown'}.")
+    planned = api.request(
+        account, "GET", _BULK_PATHS[channel], params={"bulkId": bulk_id}
+    )
+    current_time = (planned or {}).get("sendAt")
+    if current_time is None and (planned or {}).get("bulks"):
+        current_time = [b.get("sendAt") for b in planned["bulks"]]
+
+    def apply() -> Any:
+        api.request(
+            account,
+            "PUT",
+            _BULK_PATHS[channel],
+            params={"bulkId": bulk_id},
+            json={"sendAt": new_time},
+        )
+        return {"bulk_id": bulk_id, "send_time_utc": new_time}
+
+    return propose_or_apply(
+        account=account,
+        action=f"reschedule_{channel.lower()}",
+        request={"bulk_id": bulk_id, "send_at": new_time},
+        current={"status": status, "send_at": current_time},
+        summary={
+            "bulk_id": bulk_id,
+            "current_send_time": current_time,
+            "new_send_time_utc": new_time,
+            "current_status": status,
+        },
         validate_only=validate_only,
         checksum=checksum,
         apply=apply,

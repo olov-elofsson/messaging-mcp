@@ -8,9 +8,9 @@ from messaging_mcp import access, api, sending
 from messaging_mcp.app import mcp
 from messaging_mcp.audience import load_audience
 from messaging_mcp.confirm import propose_or_apply
+from messaging_mcp.tools.rcs_send import RCS_PATH, rcs_body
 
 _SMS_PATH = "/sms/3/messages"
-_RCS_PATH = "/messages-api/1/messages"
 _NO_PRICE = (
     "Infobip has no price lookup in advance. The price per message is shown "
     "by reports_delivery after sending."
@@ -50,24 +50,25 @@ def _body(
     bulk_id: str,
     send_at: str | None,
 ) -> dict[str, Any]:
-    message: dict[str, Any] = {
-        "sender": sender,
-        "destinations": [{"to": number} for number in numbers],
-        "options": {"campaignReferenceId": reference},
-    }
-    if channel == "SMS":
-        message["content"] = {"text": text}
-    else:
-        message["channel"] = "RCS"
-        message["content"] = {"body": {"type": "TEXT", "text": text}}
+    if channel == "RCS":
+        return rcs_body(
+            sender, {"type": "TEXT", "text": text}, numbers, reference, bulk_id, send_at
+        )
     return {
-        "messages": [message],
+        "messages": [
+            {
+                "sender": sender,
+                "destinations": [{"to": number} for number in numbers],
+                "content": {"text": text},
+                "options": {"campaignReferenceId": reference},
+            }
+        ],
         "options": sending.schedule_options(bulk_id, send_at),
     }
 
 
 def _send(account: str, channel: str, body: dict[str, Any]) -> Any:
-    path = _SMS_PATH if channel == "SMS" else _RCS_PATH
+    path = _SMS_PATH if channel == "SMS" else RCS_PATH
     return api.request(account, "POST", path, json=body)
 
 

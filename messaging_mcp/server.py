@@ -4,7 +4,7 @@ import os
 
 from fastmcp import FastMCP
 
-from messaging_mcp import access
+from messaging_mcp import access, metrics_inbox
 from messaging_mcp.app import mcp
 
 # Importing a tool module registers its tools.
@@ -12,9 +12,12 @@ from messaging_mcp.tools import (  # noqa: F401
     account_tools,
     audience_tools,
     email_send,
+    email_settings,
     flows,
+    rcs_send,
     reports,
     scheduled,
+    statistics,
     templates,
     text_send,
 )
@@ -43,6 +46,10 @@ def build_server() -> FastMCP:
         else FastMCP("Messaging Server")
     )
     _ensure_subscriptions_listen(server)
+    # Infobip posts statistics here. The address carries a one-time token.
+    server.custom_route(
+        metrics_inbox.CALLBACK_PATH + "/{token}", methods=["POST"]
+    )(metrics_inbox.receive)
     server.mount(mcp)
     return server
 

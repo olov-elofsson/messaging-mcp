@@ -74,6 +74,15 @@ def _people_in(answer: Any) -> list[dict[str, Any]]:
 
 def _address(person: dict[str, Any], channel: str) -> str | None:
     contact = person.get("contactInformation") or {}
+    if isinstance(contact, list):
+        # Segment members come as a list of {type, identifier} entries.
+        wanted = "EMAIL" if channel == "EMAIL" else "PHONE"
+        entries = [c for c in contact if c.get("type") == wanted and c.get("identifier")]
+        entries.sort(key=lambda c: not c.get("primary"))
+        if not entries:
+            return None
+        value = str(entries[0]["identifier"]).strip()
+        return value.lower() if channel == "EMAIL" else value.lstrip("+")
     if channel == "EMAIL":
         for entry in contact.get("email") or []:
             if entry.get("address"):

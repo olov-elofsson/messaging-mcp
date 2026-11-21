@@ -8,14 +8,16 @@ from fastmcp.exceptions import ToolError
 from messaging_mcp import api
 from messaging_mcp.app import mcp
 
-_LOG_PATHS = {"EMAIL": "/email/4/logs", "SMS": "/sms/3/logs"}
+_LOG_PATHS = {
+    "EMAIL": "/email/4/logs",
+    "SMS": "/sms/3/logs",
+    "RCS": "/rcs/2/logs",
+}
 _PAGE_SIZE = 1000
 _MAX_PAGES = 50
 _NOT_IN_LOGS = (
-    "Opens, clicks and unsubscribes are not in the message logs. Infobip only "
-    "delivers them through its Metrics API, which answers to a callback "
-    "address. That part is not built yet. Until then they are shown in the "
-    "Infobip web interface under Analyze."
+    "Opens, clicks and unsubscribes are not in the message logs. Use "
+    "reports_statistics for those."
 )
 
 
@@ -33,14 +35,14 @@ def reports_delivery(
 
     Args:
         account: Account alias from accounts_list.
-        channel: EMAIL or SMS.
+        channel: EMAIL, SMS or RCS.
         campaign_reference_id: The reference returned by a send tool. Covers
             every batch of the send.
         bulk_id: One bulk ID, as an alternative to the reference.
     """
     channel = (channel or "").strip().upper()
     if channel not in _LOG_PATHS:
-        raise ToolError("Delivery reports are available for EMAIL and SMS.")
+        raise ToolError("channel must be EMAIL, SMS or RCS.")
     if not (campaign_reference_id or bulk_id):
         raise ToolError("Pass campaign_reference_id or bulk_id.")
     statuses: Counter[str] = Counter()
@@ -68,7 +70,7 @@ def reports_delivery(
             status = log.get("status") or {}
             group = status.get("groupName") or "UNKNOWN"
             statuses[group] += 1
-            if group not in ("DELIVERED", "PENDING"):
+            if group not in ("DELIVERED", "PENDING", "ACCEPTED"):
                 error = log.get("error") or {}
                 reasons[error.get("name") or status.get("name") or "UNKNOWN"] += 1
             price = log.get("price") or {}

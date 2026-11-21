@@ -188,12 +188,15 @@ class TestServer(FakeApiTestCase):
             names,
             [
                 "accounts_list", "audience_list_segments", "audience_list_tags",
-                "audience_preview", "email_send_campaign", "email_send_test",
-                "flows_add_participants", "flows_get_add_report",
-                "reports_delivery", "scheduled_cancel", "scheduled_get_status",
-                "templates_copy", "templates_create", "templates_get",
-                "templates_list", "templates_update", "text_preview",
-                "text_send_campaign", "text_send_test",
+                "audience_preview", "email_list_sender_domains",
+                "email_list_suppressions", "email_send_campaign",
+                "email_send_test", "flows_add_participants",
+                "flows_get_add_report", "rcs_check_capability", "rcs_preview",
+                "rcs_send_campaign", "rcs_send_test", "reports_delivery",
+                "reports_statistics", "scheduled_cancel", "scheduled_get_status",
+                "scheduled_reschedule", "templates_copy", "templates_create",
+                "templates_get", "templates_list", "templates_update",
+                "text_preview", "text_send_campaign", "text_send_test",
             ],
         )
         self.assertFalse([n for n in names if "delete" in n or "remove" in n])
@@ -204,6 +207,7 @@ class TestServer(FakeApiTestCase):
             "templates_create", "templates_update", "templates_copy",
             "email_send_test", "email_send_campaign", "text_send_test",
             "text_send_campaign", "scheduled_cancel", "flows_add_participants",
+            "rcs_send_test", "rcs_send_campaign", "scheduled_reschedule",
         }
         for tool in tools:
             properties = tool.parameters["properties"]

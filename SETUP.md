@@ -99,9 +99,17 @@ genomför saken, och det nekas om något har ändrats emellan.
 | `text_preview` | Visar SMS-texten som den levereras och antal SMS-delar | Skickar inget |
 | `text_send_test` | Test-SMS eller test-RCS till högst fem nummer | Två steg |
 | `text_send_campaign` | SMS eller RCS till en tagg eller ett segment | Två steg. Kräver test av samma text och avsändare. Visar mottagare och antal SMS-delar |
+| `rcs_preview` | Kontrollerar ett rikt RCS-meddelande (text med knappar, kort, karusell) | Skickar inget |
+| `rcs_send_test` | Testar ett rikt RCS-meddelande mot högst fem nummer | Två steg |
+| `rcs_send_campaign` | Rikt RCS-meddelande till en tagg eller ett segment, med SMS som reserv | Två steg. Kräver test av exakt samma meddelande, avsändare och reservtext |
+| `rcs_check_capability` | Räknar hur många i en målgrupp som kan ta emot RCS | Bara läsning |
+| `email_list_sender_domains` | Listar domäner som kontot får skicka mejl från | Bara läsning |
+| `email_list_suppressions` | Listar adresser som Infobip spärrat (studs, klagomål, kvot) | Bara läsning |
 | `scheduled_get_status` | Status för ett schemalagt utskick (mejl, SMS) | Bara läsning |
+| `scheduled_reschedule` | Flyttar ett schemalagt utskick till en annan tid (mejl, SMS) | Två steg. Visar nuvarande tid |
 | `scheduled_cancel` | Avbryter ett schemalagt utskick som inte gått ut | Två steg. Visar nuvarande status |
-| `reports_delivery` | Levererat, väntar och misslyckat per utskick, med orsaker och kostnad | Bara läsning |
+| `reports_delivery` | Levererat, väntar och misslyckat per utskick, med orsaker och kostnad (mejl, SMS, RCS) | Bara läsning |
+| `reports_statistics` | Levererat, öppnat, klickat, studsar och avregistreringar för en period, per utskick, dag, månad, avsändare, status, flöde eller länk | Bara läsning |
 | `flows_add_participants` | Lägger till personer i ett aktivt Moments-flöde | Två steg. Högst 1000 per anrop |
 | `flows_get_add_report` | Visar om personerna togs emot | Bara läsning |
 
@@ -117,21 +125,27 @@ personer görs med en tagg, en regelstyrd grupp med ett segment.
 
 ## Det här går inte, eller är inte byggt
 
-- **Flöden i Moments** kan inte skapas, ändras, startas eller listas via
-  Infobips API. Det enda som går är att lägga till personer i ett flöde som
-  redan är aktivt och har startpunkten Flow API. Flödets ID står i
-  adressfältet när flödet är öppet i Infobip.
-- **Öppningar, klick och avregistreringar** finns inte i de loggar som
-  `reports_delivery` läser. Infobip lämnar dem bara genom sitt Metrics API,
-  som skickar svaret till en adress hos mottagaren i stället för att svara
-  direkt. Det är inte byggt. Siffrorna finns i Infobip under Analyze.
-- **Pris i förväg**: Infobip har ingen prisfråga som har gått att hitta.
-  Förslaget visar antal mottagare och SMS-delar. Kostnaden visas efteråt av
-  `reports_delivery`.
-- **RCS**: bara textmeddelanden. Kort, karuseller och knappar är inte byggda.
-  Status och rapport för RCS finns inte i `scheduled_*` och `reports_delivery`.
+- **Flöden (journeys) i Moments** kan inte skapas, byggas, ändras, startas
+  eller listas via Infobips publika API. Det är kontrollerat mot hela
+  API-specifikationen (690 adresser, 2026-11-21): det enda som finns är att
+  lägga till och ta bort personer i ett flöde som redan är aktivt och har
+  startpunkten Flow API. Portalen har behörigheten `flow:control`, men ingen
+  publik adress använder den. Flöden byggs alltså i Infobips webbgränssnitt.
+  Flödets ID står i adressfältet när flödet är öppet.
+  En enkel serie utan villkor (till exempel mejl dag 0 och SMS dag 3 till
+  samma målgrupp) går att göra som flera schemalagda utskick.
+- **Statistiken** hämtas från Infobips Metrics API, som skickar svaret till
+  serverns adress `/metrics-callback/<engångskod>`. Bara summerade tal går
+  den vägen och inget sparas. Siffrorna kan släpa några minuter, och en
+  period får vara högst 93 dagar.
+- **Pris i förväg**: Infobip har ingen prisfråga. Förslaget visar antal
+  mottagare och SMS-delar. Kostnaden visas efteråt av `reports_delivery`.
+- **RCS**: status och flytt av schemalagda RCS-utskick finns inte
+  (`scheduled_*` gäller mejl och SMS).
+- **Personliga texter i SMS och RCS** är inte byggt. Alla får samma text.
 - **Loggar** sparas en begränsad tid hos Infobip (ungefär 48 timmar), så
-  rapporten ska hämtas kort efter utskicket.
+  `reports_delivery` ska köras kort efter utskicket. `reports_statistics`
+  går längre bakåt.
 
 ## Status 2026-11-21
 
@@ -139,15 +153,11 @@ personer görs med en tagg, en regelstyrd grupp med ett segment.
 - Tjänsten är driftsatt och svarar. Inloggning är begränsad till en adress.
 - Servern är tillagd i Claude som connectorn "Messaging (Infobip)".
 - Provat mot ett riktigt konto: `accounts_list`, `templates_list`,
-  `audience_list_tags`, `audience_list_segments` och `audience_preview` för
-  en tagg. Inget ändrings- eller utskicksverktyg är provat på riktigt.
-- Infobips portal har behörigheterna `flow:control` (starta, stoppa och
-  avbryta flöden) och `flow:read` (läsa flöden och deltagare). Det tyder på
-  att flöden går att styra via API, tvärtemot vad som står ovan. Inte utrett.
-- Adresser och fältnamn kommer från Infobips officiella Python-klient och
-  OpenAPI-specifikation. Tre saker är inte bekräftade där och kan behöva
-  justeras vid första riktiga körningen: formen på svaret från
-  `/people/3/segments` och `/people/3/segments/{id}/persons`, samt att
-  `PATCH` på en mall godtar enstaka fält.
+  `templates_get`, `templates_create`, `audience_list_tags`,
+  `audience_preview` för en tagg och `text_preview`. Inget utskicksverktyg
+  är provat på riktigt.
+- Adresser och fältnamn kommer från Infobips OpenAPI-specifikation. Inte
+  bekräftat mot ett riktigt konto: att `PATCH` på en mall godtar enstaka
+  fält, och alla utskicksverktyg.
 
 Tester: `python -m pytest tests`

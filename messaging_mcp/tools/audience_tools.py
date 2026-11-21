@@ -37,12 +37,16 @@ def audience_list_segments(account: str) -> dict[str, Any]:
         account, "GET", "/people/3/segments", params={"size": 1000, "page": 0}
     )
     if isinstance(answer, dict):
-        segments = answer.get("content") or answer.get("segments") or []
+        segments = answer.get("results") or answer.get("content") or []
     else:
         segments = answer or []
     return {
         "segments": [
-            {"segment_id": segment.get("id"), "name": segment.get("name")}
+            {
+                "segment_id": segment.get("id"),
+                "name": segment.get("name"),
+                "description": segment.get("description"),
+            }
             for segment in segments
         ]
     }

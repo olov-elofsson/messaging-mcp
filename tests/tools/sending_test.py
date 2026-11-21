@@ -43,7 +43,7 @@ class SendCase(FakeApiTestCase):
                               "charactersRemaining": 10}]
             },
             ("POST", "/sms/3/messages"): {"bulkId": "b"},
-            ("POST", "/messages-api/1/messages"): {"bulkId": "b"},
+            ("POST", "/rcs/2/messages"): {"bulkId": "b"},
         })
 
     def _slice(self, page, size):
@@ -80,6 +80,25 @@ class TestAudience(SendCase):
             ["46700000001", "46700000002", "46700000003"],
         )
 
+    def test_segment_members_in_the_newer_contact_format(self):
+        self.people = [
+            {"firstName": "A", "contactInformation": [
+                {"type": "PHONE", "identifier": "+46700000009"},
+                {"type": "EMAIL", "identifier": "Second@Example.com"},
+                {"type": "EMAIL", "identifier": "Main@Example.com", "primary": True},
+            ]},
+            {"firstName": "B", "contactInformation": [
+                {"type": "PHONE", "identifier": "46700000008"}]},
+        ]
+        self.routes[("GET", "/people/3/segments/12/persons")] = lambda c: {
+            "results": self._slice(c.params["page"], c.params["size"])}
+        email = audience.load_audience(ACCOUNT, "segment", "12", "EMAIL")
+        self.assertEqual([r.address for r in email.recipients], ["main@example.com"])
+        self.assertEqual(email.without_address, 1)
+        sms = audience.load_audience(ACCOUNT, "segment", "12", "SMS")
+        self.assertEqual([r.address for r in sms.recipients],
+                         ["46700000009", "46700000008"])
+
     def test_reads_every_page(self):
         self.people = [person(n) for n in range(2300)]
         loaded = audience.load_audience(ACCOUNT, "tag", "vip", "EMAIL")
@@ -114,12 +133,13 @@ class TestAudience(SendCase):
     def test_tools_list_tags_segments_and_preview(self):
         self.routes[("GET", "/people/2/tags")] = {"tags": [{"name": "vip"}]}
         self.routes[("GET", "/people/3/segments")] = {
-            "content": [{"id": 12, "name": "Buyers"}]
+            "results": [{"id": 12, "name": "Buyers", "description": "d"}],
+            "paging": {"page": 0, "size": 1000, "totalPages": 1},
         }
         self.assertEqual(audience_tools.audience_list_tags(ACCOUNT)["tags"][0]["name"], "vip")
         self.assertEqual(
             audience_tools.audience_list_segments(ACCOUNT)["segments"],
-            [{"segment_id": 12, "name": "Buyers"}],
+            [{"segment_id": 12, "name": "Buyers", "description": "d"}],
         )
         preview = audience_tools.audience_preview(ACCOUNT, "tag", "vip", "EMAIL")
         self.assertEqual(preview["recipients"], 2)
@@ -348,18 +368,18 @@ class TestText(SendCase):
             post.json["messages"][0]["destinations"],
             [{"to": "46700000001"}, {"to": "46700000002"}, {"to": "46700000003"}])
         self.assertEqual(applied["result"]["recipients_accepted"], 3)
-        self.assertEqual(self.sent("POST", "/messages-api/1/messages"), [])
+        self.assertEqual(self.sent("POST", "/rcs/2/messages"), [])
 
-    def test_rcs_uses_the_messages_api_with_a_text_body(self):
+    def test_plain_rcs_text_goes_through_the_rcs_api(self):
         token = self._token(channel="RCS")
         confirm(
             text_send.text_send_campaign, account=ACCOUNT, channel="RCS",
             sender="Shop", text="Hi", audience_kind="tag",
             audience_value="vip", test_token=token, send_at=future())
-        test_post, post = self.sent("POST", "/messages-api/1/messages")
+        test_post, post = self.sent("POST", "/rcs/2/messages")
         message = post.json["messages"][0]
-        self.assertEqual(message["channel"], "RCS")
-        self.assertEqual(message["content"], {"body": {"type": "TEXT", "text": "Hi"}})
+        self.assertEqual(message["content"], {"type": "TEXT", "text": "Hi"})
+        self.assertNotIn("channel", message)
         self.assertIn("sendAt", post.json["options"]["schedule"])
         self.assertEqual(self.sent("POST", "/sms/3/messages"), [])
 

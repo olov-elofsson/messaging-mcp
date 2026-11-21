@@ -191,8 +191,12 @@ class TestServer(FakeApiTestCase):
                 "audience_preview", "email_list_sender_domains",
                 "email_list_suppressions", "email_send_campaign",
                 "email_send_test", "flows_add_participants",
-                "flows_get_add_report", "rcs_check_capability", "rcs_preview",
-                "rcs_send_campaign", "rcs_send_test", "reports_delivery",
+                "flows_get_add_report", "rcs_add_test_number",
+                "rcs_check_capability", "rcs_list_senders", "rcs_list_test_numbers",
+                "rcs_preview", "rcs_send_campaign", "rcs_send_test",
+                "rcs_sender_status", "rcs_templates_create", "rcs_templates_get",
+                "rcs_templates_list", "rcs_templates_list_operators",
+                "rcs_templates_register", "rcs_templates_update", "reports_delivery",
                 "reports_statistics", "scheduled_cancel", "scheduled_get_status",
                 "scheduled_reschedule", "templates_copy", "templates_create",
                 "templates_get", "templates_list", "templates_update",
@@ -208,6 +212,8 @@ class TestServer(FakeApiTestCase):
             "email_send_test", "email_send_campaign", "text_send_test",
             "text_send_campaign", "scheduled_cancel", "flows_add_participants",
             "rcs_send_test", "rcs_send_campaign", "scheduled_reschedule",
+            "rcs_add_test_number", "rcs_templates_create", "rcs_templates_update",
+            "rcs_templates_register",
         }
         for tool in tools:
             properties = tool.parameters["properties"]

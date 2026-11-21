@@ -99,10 +99,17 @@ genomför saken, och det nekas om något har ändrats emellan.
 | `text_preview` | Visar SMS-texten som den levereras och antal SMS-delar | Skickar inget |
 | `text_send_test` | Test-SMS eller test-RCS till högst fem nummer | Två steg |
 | `text_send_campaign` | SMS eller RCS till en tagg eller ett segment | Två steg. Kräver test av samma text och avsändare. Visar mottagare och antal SMS-delar |
-| `rcs_preview` | Kontrollerar ett rikt RCS-meddelande (text med knappar, kort, karusell) | Skickar inget |
-| `rcs_send_test` | Testar ett rikt RCS-meddelande mot högst fem nummer | Två steg |
-| `rcs_send_campaign` | Rikt RCS-meddelande till en tagg eller ett segment, med SMS som reserv | Två steg. Kräver test av exakt samma meddelande, avsändare och reservtext |
+| `rcs_preview` | Kontrollerar ett RCS-meddelande och visar det ifyllt med exempelnamn | Skickar inget. Visar avsändarens status |
+| `rcs_send_test` | Testar ett RCS-meddelande mot högst fem nummer | Två steg |
+| `rcs_send_campaign` | RCS till en tagg eller ett segment, med SMS som reserv, sändningsfönster, giltighetstid, takt och klickspårning | Två steg. Kräver test av exakt samma meddelande, avsändare och reservtext. Varnar om avsändaren inte är lanserad. Nekar personliga fält som saknas hos någon mottagare om inget standardvärde finns |
 | `rcs_check_capability` | Räknar hur många i en målgrupp som kan ta emot RCS | Bara läsning |
+| `rcs_list_senders`, `rcs_sender_status` | Visar kontots RCS-avsändare och var de är lanserade, per land och operatör | Bara läsning |
+| `rcs_list_test_numbers` | Visar avsändarens testnummer | Bara läsning |
+| `rcs_add_test_number` | Lägger till ett testnummer | Två steg. Ägaren måste godkänna en inbjudan. Testnummer går inte att ta bort via API |
+| `rcs_templates_list`, `rcs_templates_get`, `rcs_templates_list_operators` | Visar operatörsmallar, deras godkännande och vilka operatörer som finns | Bara läsning |
+| `rcs_templates_create` | Skapar en operatörsmall och skickar den för granskning | Två steg |
+| `rcs_templates_update` | Byter innehåll i en operatörsmall | Två steg. Visar gammalt och nytt |
+| `rcs_templates_register` | Skickar en mall till fler operatörer | Två steg. Visar var den redan finns |
 | `email_list_sender_domains` | Listar domäner som kontot får skicka mejl från | Bara läsning |
 | `email_list_suppressions` | Listar adresser som Infobip spärrat (studs, klagomål, kvot) | Bara läsning |
 | `scheduled_get_status` | Status för ett schemalagt utskick (mejl, SMS) | Bara läsning |
@@ -119,6 +126,19 @@ Gränser: högst 20 000 mottagare per utskick (miljövariabeln
 `MESSAGING_MCP_MAX_RECIPIENTS`), schemaläggning högst 30 dagar framåt,
 utskick delas i omgångar om 500. Går en omgång fel stannar utskicket och
 felet säger vilka omgångar Infobip redan tagit emot.
+
+### RCS-meddelanden
+
+- Typer: text, fil (bild, film, pdf), kort, karusell med 2–10 kort, och
+  operatörsmall.
+- Knappar: svar, länk (i webbläsaren eller i ett fönster i appen), ring,
+  visa plats, be om plats och lägg till i kalendern.
+- Personliga fält: `{{firstName}}` och `{{lastName}}`, med standardvärde
+  efter ett streck: `{{firstName|kund}}`. Då får varje mottagare ett eget
+  meddelande, och servern kontrollerar alla innan något skickas.
+- Sändningsfönstret anges i svensk tid och räknas om till UTC för den dag
+  utskicket går.
+- En avsändare som inte är lanserad når bara sina testnummer.
 
 "Lista" i People: Infobip har ingen vanlig mottagarlista. En fast grupp
 personer görs med en tagg, en regelstyrd grupp med ett segment.
@@ -142,7 +162,13 @@ personer görs med en tagg, en regelstyrd grupp med ett segment.
   mottagare och SMS-delar. Kostnaden visas efteråt av `reports_delivery`.
 - **RCS**: status och flytt av schemalagda RCS-utskick finns inte
   (`scheduled_*` gäller mejl och SMS).
-- **Personliga texter i SMS och RCS** är inte byggt. Alla får samma text.
+- **Personliga texter i SMS** är inte byggt. I RCS finns det.
+- **Svar på RCS** (vad mottagaren trycker eller skriver) går bara att få
+  genom att Infobip skickar dem till servern, och det kräver en inställning
+  i varje kunds konto och att svaren sparas. Inte byggt.
+- **Inte bekräftat mot ett riktigt konto för RCS:** att Infobip läser
+  sändningsfönstret i UTC, att klickspårning gäller länkknappar, och hur
+  parametrar skrivs i en operatörsmall.
 - **Loggar** sparas en begränsad tid hos Infobip (ungefär 48 timmar), så
   `reports_delivery` ska köras kort efter utskicket. `reports_statistics`
   går längre bakåt.

@@ -112,6 +112,7 @@ def send_in_batches(
     recipients: list[Any],
     reference: str,
     send_batch: Callable[[list[Any], str], Any],
+    batch_size: int = BATCH_SIZE,
 ) -> dict[str, Any]:
     """Sends batch by batch and stops at the first failure.
 
@@ -120,9 +121,9 @@ def send_in_batches(
     """
     bulk_ids: list[str] = []
     accepted = 0
-    for start in range(0, len(recipients), BATCH_SIZE):
-        batch = recipients[start : start + BATCH_SIZE]
-        bulk_id = f"{reference}-{start // BATCH_SIZE + 1}"
+    for start in range(0, len(recipients), batch_size):
+        batch = recipients[start : start + batch_size]
+        bulk_id = f"{reference}-{start // batch_size + 1}"
         try:
             send_batch(batch, bulk_id)
         except ToolError as exc:

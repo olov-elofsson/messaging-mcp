@@ -15,6 +15,8 @@ from messaging_mcp.tools import (  # noqa: F401
     email_settings,
     flows,
     rcs_send,
+    rcs_senders,
+    rcs_templates,
     reports,
     scheduled,
     statistics,

@@ -16,7 +16,9 @@ en tagg eller ett segment med test och bekräftelse, och flera konton.
 | Sessionslagring | Firestore-databasen `messaging-sessions`, plats `eur3` |
 | Körkonto | `messaging-mcp-run@wigo-ads-mcp.iam.gserviceaccount.com` (eget, når bara de tre hemligheterna ovan) |
 
-Inga hemligheter ligger i det här repot. Tjänsten är inte driftsatt än.
+| OAuth | Klienten "Messaging MCP server" (Web application) |
+
+Inga hemligheter ligger i det här repot.
 
 ## Driftsätta första gången
 
@@ -128,7 +130,9 @@ personer görs med en tagg, en regelstyrd grupp med ett segment.
 ## Status 2026-11-21
 
 - All kod har tester som körs mot ett låtsas-API. Alla går igenom.
-- Inget är provat mot ett riktigt Infobip-konto och tjänsten är inte driftsatt.
+- Tjänsten är driftsatt och svarar. Inloggning är begränsad till en adress.
+- Inget Infobip-konto är tillagt än, och inget är provat mot ett riktigt konto.
+- Servern är inte tillagd som connector i Claude än.
 - Adresser och fältnamn kommer från Infobips officiella Python-klient och
   OpenAPI-specifikation. Tre saker är inte bekräftade där och kan behöva
   justeras vid första riktiga körningen: filtret för personer med en viss

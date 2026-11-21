@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "messaging-mcp"
+version = "0.1.0"
+description = "MCP server for email, SMS and RCS campaigns through the Infobip API."
+requires-python = ">=3.10"
+license = "Apache-2.0"
+dependencies = [
+    "fastmcp>=4.0.6,<5",
+    "requests>=2.31",
+]
+
+[project.optional-dependencies]
+firestore = ["py-key-value-aio[firestore] >=0.4.5, <0.5.0"]
+dev = ["pytest"]
+
+[project.scripts]
+messaging-mcp = "messaging_mcp.server:run_server"
+
+[tool.setuptools.packages.find]
+include = ["messaging_mcp*"]

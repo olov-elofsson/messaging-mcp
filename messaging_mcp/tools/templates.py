@@ -20,6 +20,8 @@ _FIELDS = {
 }
 _MAX_SUBJECT = 200
 _MAX_PREHEADER = 75
+# Infobip refuses a larger page of templates.
+_MAX_PAGE_SIZE = 20
 
 
 def _check_lengths(subject: str | None, preheader: str | None) -> None:
@@ -50,17 +52,17 @@ def _stored_values(template: dict[str, Any]) -> dict[str, Any]:
 
 @mcp.tool
 def templates_list(
-    account: str, page: int = 0, page_size: int = 50
+    account: str, page: int = 0, page_size: int = 20
 ) -> dict[str, Any]:
     """Lists the email templates in an account, newest information included.
 
     Args:
         account: Account alias from accounts_list.
         page: Zero-based page number.
-        page_size: Templates per page, 1 to 100.
+        page_size: Templates per page, 1 to 20.
     """
-    if not 1 <= page_size <= 100:
-        raise ToolError("page_size must be between 1 and 100.")
+    if not 1 <= page_size <= _MAX_PAGE_SIZE:
+        raise ToolError(f"page_size must be between 1 and {_MAX_PAGE_SIZE}.")
     answer = api.request(
         account, "GET", _PATH, params={"page": max(page, 0), "size": page_size}
     )
@@ -358,12 +360,12 @@ def _names_in_use(account: str) -> set[str]:
     page = 0
     while True:
         answer = api.request(
-            account, "GET", _PATH, params={"page": page, "size": 100}
+            account, "GET", _PATH, params={"page": page, "size": _MAX_PAGE_SIZE}
         ) or {}
         for item in answer.get("results", []):
             if item.get("name"):
                 names.add(str(item["name"]).strip().lower())
         total_pages = (answer.get("paging") or {}).get("totalPages", 1)
         page += 1
-        if page >= total_pages or page >= 50:
+        if page >= total_pages or page >= 250:
             return names

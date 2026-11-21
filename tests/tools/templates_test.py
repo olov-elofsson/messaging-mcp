@@ -34,7 +34,22 @@ class TestRead(TemplateCase):
         self.assertEqual(result["templates"][0]["name"], "Spring")
         self.assertEqual(self.calls[0].params, {"page": 0, "size": 10})
         with self.assertRaisesRegex(ToolError, "page_size"):
-            tt.templates_list(ACCOUNT, page_size=500)
+            tt.templates_list(ACCOUNT, page_size=21)
+
+    def test_never_asks_for_more_than_twenty_templates_per_page(self):
+        tt.templates_list(ACCOUNT)
+        tt.templates_create(ACCOUNT, "New", HTML)
+        sizes = {c.params["size"] for c in self.sent("GET", "/email/1/templates")}
+        self.assertEqual(sizes, {20})
+
+    def test_name_check_reads_every_page(self):
+        pages = {
+            0: {"results": [{"id": 1, "name": "A"}], "paging": {"totalPages": 2}},
+            1: {"results": [{"id": 2, "name": "Taken"}], "paging": {"totalPages": 2}},
+        }
+        self.routes[("GET", "/email/1/templates")] = lambda c: pages[c.params["page"]]
+        with self.assertRaisesRegex(ToolError, "already exists"):
+            tt.templates_create(ACCOUNT, "taken", HTML)
 
     def test_get_returns_sender_subject_and_html(self):
         result = tt.templates_get(ACCOUNT, 7)

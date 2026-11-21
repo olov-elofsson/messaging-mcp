@@ -4,7 +4,7 @@ from typing import Any
 
 from fastmcp.exceptions import ToolError
 
-from messaging_mcp import api, sending
+from messaging_mcp import access, api, sending
 from messaging_mcp.app import mcp
 from messaging_mcp.audience import load_audience
 from messaging_mcp.confirm import propose_or_apply
@@ -18,6 +18,8 @@ _NO_PRICE = (
 
 
 def _channel(channel: str) -> str:
+    # The RCS preview makes no API call, so the caller is checked here too.
+    access.require_allowed_user()
     value = (channel or "").strip().upper()
     if value not in ("SMS", "RCS"):
         raise ToolError("channel must be SMS or RCS.")

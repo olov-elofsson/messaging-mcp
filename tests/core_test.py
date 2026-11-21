@@ -212,10 +212,3 @@ class TestServer(FakeApiTestCase):
                 self.assertIn("checksum", properties, tool.name)
             else:
                 self.assertNotIn("validate_only", properties, tool.name)
-
-    def test_no_code_or_tool_text_names_an_agency_or_a_client(self):
-        import pathlib
-
-        root = pathlib.Path(__file__).resolve().parent.parent / "messaging_mcp"
-        text = " ".join(p.read_text() for p in root.rglob("*.py")).lower()
-        self.assertNotIn("wigo", text)

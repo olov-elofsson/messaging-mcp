@@ -50,11 +50,17 @@ efter något.
 
 ### Behörigheter på API-nyckeln i Infobip
 
-Skapa nyckeln i Infobips portal under Developers > API keys med dessa
-scopes: `email:manage`, `sms:manage`, `people:read`, `message:send`
-(för RCS) och den som gäller Moments-flöden om flödesverktyget ska användas.
-Namnen på scopes är inte kontrollerade mot ett riktigt konto. Saknas en
-behörighet svarar Infobip 403 och verktyget visar det.
+Skapa nyckeln i Infobips portal under Developer Tools > API Keys med dessa
+scopes (provade mot ett riktigt konto 2026-11-21):
+
+`email:manage`, `email:templates:manage`, `sms:manage`,
+`messages-api:manage`, `flow:manage`, `flow:read`, `people:manage`,
+`people:read`
+
+`people:read` behövs utöver `people:manage`, annars svarar Infobip 403 när
+personerna i en tagg ska läsas. Skriptet `add-account.sh` gör en provfråga
+om saldo som svarar 403 med de här behörigheterna. Det är väntat och betyder
+bara att nyckeln inte får läsa saldot.
 
 ### Byta vilka som får logga in
 
@@ -131,12 +137,16 @@ personer görs med en tagg, en regelstyrd grupp med ett segment.
 
 - All kod har tester som körs mot ett låtsas-API. Alla går igenom.
 - Tjänsten är driftsatt och svarar. Inloggning är begränsad till en adress.
-- Inget Infobip-konto är tillagt än, och inget är provat mot ett riktigt konto.
-- Servern är inte tillagd som connector i Claude än.
+- Servern är tillagd i Claude som connectorn "Messaging (Infobip)".
+- Provat mot ett riktigt konto: `accounts_list`, `templates_list`,
+  `audience_list_tags`, `audience_list_segments` och `audience_preview` för
+  en tagg. Inget ändrings- eller utskicksverktyg är provat på riktigt.
+- Infobips portal har behörigheterna `flow:control` (starta, stoppa och
+  avbryta flöden) och `flow:read` (läsa flöden och deltagare). Det tyder på
+  att flöden går att styra via API, tvärtemot vad som står ovan. Inte utrett.
 - Adresser och fältnamn kommer från Infobips officiella Python-klient och
   OpenAPI-specifikation. Tre saker är inte bekräftade där och kan behöva
-  justeras vid första riktiga körningen: filtret för personer med en viss
-  tagg (`{"#contains": {"tags": ...}}`), formen på svaret från
+  justeras vid första riktiga körningen: formen på svaret från
   `/people/3/segments` och `/people/3/segments/{id}/persons`, samt att
   `PATCH` på en mall godtar enstaka fält.
 
